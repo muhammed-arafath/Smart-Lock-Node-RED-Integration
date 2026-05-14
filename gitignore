@@ -1,0 +1,24 @@
+# Credentials — NEVER commit these
+.env
+secrets.json
+credentials.json
+*_credentials.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
