@@ -1,0 +1,873 @@
+[
+  {
+    "id": "b73d270e92cfddf8",
+    "type": "tab",
+    "label": "Smart Lock Pro",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "4aa6b9f07a075794",
+    "type": "tuya-device",
+    "z": "b73d270e92cfddf8",
+    "device": "6a813e70ef9da04a",
+    "dps": "",
+    "multiDps": false,
+    "name": "Smart Lock",
+    "outputs": 1,
+    "outputsMode": 3,
+    "outputLabelList": [
+      "data",
+      "status1"
+    ],
+    "outputSelList": [
+      true,
+      true
+    ],
+    "x": 560,
+    "y": 240,
+    "wires": [
+      [
+        "480ab9c7c783a89c",
+        "afe0d745428a9083"
+      ]
+    ]
+  },
+  {
+    "id": "6e0139413ddd2e01",
+    "type": "comment",
+    "z": "b73d270e92cfddf8",
+    "name": "\u2500\u2500 1. AUTO TOKEN (Cloud API \u2014 refreshes every 2h) \u2500\u2500",
+    "x": 220,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "1157f2cab46cc19c",
+    "type": "inject",
+    "z": "b73d270e92cfddf8",
+    "name": "Get Token",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "7100",
+    "once": true,
+    "onceDelay": 1,
+    "payload": "",
+    "payloadType": "date",
+    "x": 120,
+    "y": 100,
+    "wires": [
+      [
+        "586c9ab2794d9c70"
+      ]
+    ]
+  },
+  {
+    "id": "586c9ab2794d9c70",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Sign Token",
+    "func": "var C='YOUR_CLIENT_ID', S='YOUR_CLIENT_SECRET', B='https://openapi.tuyaeu.com';\nvar path = '/v1.0/token?grant_type=1';\nvar t    = String(Date.now());\nvar bh   = crypto.createHash('sha256').update('').digest('hex');\nvar sts  = 'GET\\n' + bh + '\\n\\n' + path;\nvar sig  = crypto.createHmac('sha256',S).update(C+t+sts).digest('hex').toUpperCase();\nmsg.method='GET'; msg.url=B+path; msg.payload='';\nmsg.headers={'client_id':C,'sign_method':'HMAC-SHA256','t':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 320,
+    "y": 100,
+    "wires": [
+      [
+        "f87071c20b6df2bd"
+      ]
+    ]
+  },
+  {
+    "id": "f87071c20b6df2bd",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "GET Token",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 520,
+    "y": 100,
+    "wires": [
+      [
+        "9ea52a06421803b2"
+      ]
+    ]
+  },
+  {
+    "id": "9ea52a06421803b2",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Save Token",
+    "func": "if(msg.payload && msg.payload.success){\n  flow.set('TOKEN', msg.payload.result.access_token);\n  node.status({fill:'green',shape:'dot',text:'Token OK '+new Date().toLocaleTimeString()});\n} else {\n  node.status({fill:'red',shape:'dot',text:'FAILED: '+JSON.stringify(msg.payload)});\n}\nreturn null;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 720,
+    "y": 100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "8206c63a99e071c5",
+    "type": "inject",
+    "z": "b73d270e92cfddf8",
+    "name": "Load Users",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "once": true,
+    "onceDelay": 4,
+    "payload": "",
+    "payloadType": "date",
+    "x": 120,
+    "y": 160,
+    "wires": [
+      [
+        "43cbb276f2a81802"
+      ]
+    ]
+  },
+  {
+    "id": "43cbb276f2a81802",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Sign Users Req",
+    "func": "var C='YOUR_CLIENT_ID', S='YOUR_CLIENT_SECRET', D='YOUR_DEVICE_ID', B='https://openapi.tuyaeu.com';\nvar T = flow.get('TOKEN') || '';\nif(!T){ node.status({fill:'red',shape:'dot',text:'No token \u2014 wait'}); return null; }\nvar path = '/v1.0/devices/' + D + '/door-lock/temp-passwords';\nvar t   = String(Date.now());\nvar bh  = crypto.createHash('sha256').update('').digest('hex');\nvar sts = 'GET\\n' + bh + '\\n\\n' + path;\nvar sig = crypto.createHmac('sha256',S).update(C+T+t+sts).digest('hex').toUpperCase();\nmsg.method  = 'GET';\nmsg.url     = B + path;\nmsg.payload = '';\nmsg.headers = {'client_id':C,'access_token':T,'sign_method':'HMAC-SHA256','t':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 340,
+    "y": 160,
+    "wires": [
+      [
+        "aba3b7ec366e10c2"
+      ]
+    ]
+  },
+  {
+    "id": "aba3b7ec366e10c2",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "GET Users",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 560,
+    "y": 160,
+    "wires": [
+      [
+        "8b7761b31dd746f7"
+      ]
+    ]
+  },
+  {
+    "id": "8b7761b31dd746f7",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Save User Map",
+    "func": "if(!msg.payload||!msg.payload.success){ return null; }\nvar users = msg.payload.result || [];\nvar map   = {};\nusers.forEach(function(u){\n  map[String(u.sn)] = {name:u.name||('User '+u.sn),\n    type:u.type===0?'Permanent':'Temporary',\n    active:u.phase===2};\n});\nflow.set('tempUsers', map);\nnode.status({fill:'green',shape:'dot',text:users.length+' users loaded'});\nreturn null;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 760,
+    "y": 160,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "855d075edf65c847",
+    "type": "comment",
+    "z": "b73d270e92cfddf8",
+    "name": "\u2500\u2500 2. LOCAL DEVICE EVENTS (real-time from LAN) \u2500\u2500",
+    "x": 220,
+    "y": 240,
+    "wires": []
+  },
+  {
+    "id": "480ab9c7c783a89c",
+    "type": "debug",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udce5 Raw Tuya Data",
+    "active": true,
+    "tosidebar": true,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 750,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "afe0d745428a9083",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Parse Lock Event",
+    "func": "var data = msg.payload;\nvar tempUsers = flow.get('tempUsers') || {};\n\nvar UNLOCK = {\n  'unlock_fingerprint':'\ud83d\udc46 Fingerprint',\n  'unlock_password':   '\ud83d\udd22 Password',\n  'unlock_temporary':  '\ud83d\udd11 Temp Code',\n  'unlock_card':       '\ud83d\udcb3 Card',\n  'unlock_face':       '\ud83d\ude0a Face',\n  'unlock_key':        '\ud83d\udddd Physical Key',\n  'unlock_app':        '\ud83d\udcf1 App/Remote',\n  'unlock_hand':       '\u270b Hand'\n};\nvar ALARM = {\n  'wrong_finger':  '\u26a0\ufe0f Wrong Fingerprint',\n  'wrong_password':'\u26a0\ufe0f Wrong Password',\n  'wrong_card':    '\u26a0\ufe0f Wrong Card',\n  'pry':           '\ud83d\udea8 Lock Pried!',\n  'low_battery':   '\ud83d\udd0b Low Battery',\n  'shock':         '\ud83d\udea8 Shock Detected',\n  'defense':       '\ud83d\udea8 Defense Mode'\n};\n\nvar ts = new Date().toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\nvar event = null;\n\nObject.keys(data).forEach(function(key){\n  var val = data[key];\n\n  // Unlock event\n  if(UNLOCK[key] && parseInt(val) > 0){\n    var uid  = parseInt(val);\n    var uname= 'User #'+uid;\n    if(key==='unlock_temporary' && tempUsers[String(uid)])\n      uname = tempUsers[String(uid)].name + ' (ID:'+uid+')';\n    event = {type:'UNLOCK', method:UNLOCK[key],\n             userId:uid, userName:uname, time:ts, raw:data};\n  }\n\n  // Alarm event\n  if(key==='alarm_lock' && ALARM[val])\n    event = {type:'ALARM', method:ALARM[val], userId:null, time:ts, raw:data};\n\n  // Battery\n  if(key==='residual_electricity'){\n    flow.set('battery', val+'%');\n    if(parseInt(val)<20)\n      event = {type:'ALARM', method:'\ud83d\udd0b Low Battery: '+val+'%', userId:null, time:ts, raw:data};\n  }\n\n  // Doorbell\n  if(key==='doorbell' && val===true)\n    event = {type:'DOORBELL', method:'\ud83d\udd14 Doorbell pressed', userId:null, time:ts, raw:data};\n\n  // Arm/disarm\n  if(key==='arming_switch')\n    event = {type:val?'ARMED':'DISARMED', method:val?'\ud83d\udd12 Armed':'\ud83d\udd13 Disarmed',\n             userId:null, time:ts, raw:data};\n});\n\nif(!event) return null;\n\nvar colors = {UNLOCK:'green',ALARM:'red',ARMED:'yellow',DISARMED:'yellow',DOORBELL:'blue'};\nvar label  = event.method + (event.userName?' | '+event.userName:'') + ' @ ' + event.time;\nnode.status({fill:colors[event.type]||'grey', shape:'dot', text:label});\nmsg.payload = event;\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 750,
+    "y": 280,
+    "wires": [
+      [
+        "ce0c578b83d30205"
+      ]
+    ]
+  },
+  {
+    "id": "ce0c578b83d30205",
+    "type": "debug",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udd13 Lock Events",
+    "active": true,
+    "tosidebar": true,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 970,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "98310833b006f134",
+    "type": "comment",
+    "z": "b73d270e92cfddf8",
+    "name": "\u2500\u2500 3. OFFLINE PASSWORD (keypad code \u2014 works without internet) \u2500\u2500",
+    "x": 270,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "3f161020c3d6b2ba",
+    "type": "inject",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udd11 Get Offline Password",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "once": false,
+    "onceDelay": 1,
+    "payload": "",
+    "payloadType": "date",
+    "x": 140,
+    "y": 360,
+    "wires": [
+      [
+        "1496800fa1b359b0"
+      ]
+    ]
+  },
+  {
+    "id": "1496800fa1b359b0",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Sign Offline Req",
+    "func": "var C='YOUR_CLIENT_ID',S='YOUR_CLIENT_SECRET',D='YOUR_DEVICE_ID',B='https://openapi.tuyaeu.com';\nvar T=flow.get('TOKEN')||'';\nif(!T){node.status({fill:'red',shape:'dot',text:'No token'});return null;}\nvar path = '/v1.1/devices/'+D+'/door-lock/offline-temp-password';\nvar now  = Math.floor(Date.now()/1000);\n\n// Custom time from msg.payload or defaults to 1 hour\nvar effectiveTime = now;\nvar invalidTime   = now + 3600; // default 1 hour\n\nif(msg.payload && typeof msg.payload === 'object'){\n  // {hours: N} \u2014 valid for N hours from now\n  if(msg.payload.hours){\n    invalidTime = now + (parseInt(msg.payload.hours) * 3600);\n  }\n  // {from: 'YYYY-MM-DDTHH:MM', to: 'YYYY-MM-DDTHH:MM'}\n  if(msg.payload.from){\n    effectiveTime = Math.floor(new Date(msg.payload.from).getTime()/1000);\n  }\n  if(msg.payload.to){\n    invalidTime = Math.floor(new Date(msg.payload.to).getTime()/1000);\n  }\n}\n\nvar body = JSON.stringify({type:'once', effective_time:effectiveTime, invalid_time:invalidTime});\nvar t    = String(Date.now());\nvar bh   = crypto.createHash('sha256').update(body).digest('hex');\nvar sts  = 'POST\\n'+bh+'\\n\\n'+path;\nvar sig  = crypto.createHmac('sha256',S).update(C+T+t+sts).digest('hex').toUpperCase();\nmsg.method='POST'; msg.url=B+path; msg.payload=body;\nmsg.headers={'client_id':C,'access_token':T,'sign_method':'HMAC-SHA256','t':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nvar fromStr = new Date(effectiveTime*1000).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\nvar toStr   = new Date(invalidTime*1000).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\nnode.status({fill:'blue',shape:'ring',text:'Valid: '+fromStr+' \u2192 '+toStr});\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 380,
+    "y": 360,
+    "wires": [
+      [
+        "59e284a39b0d9477"
+      ]
+    ]
+  },
+  {
+    "id": "59e284a39b0d9477",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "POST Offline Pwd",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 620,
+    "y": 360,
+    "wires": [
+      [
+        "f1ca390eb54ae341"
+      ]
+    ]
+  },
+  {
+    "id": "f1ca390eb54ae341",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Offline Pwd Result",
+    "func": "if(msg.payload&&msg.payload.success){\n  var r   = msg.payload.result;\n  var pwd = r.offline_temp_password;\n  var frm = new Date(r.effective_time*1000).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\n  var exp = new Date(r.invalid_time*1000).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\n  flow.set('lastPwd', pwd);\n  node.status({fill:'green',shape:'dot',text:'Code: '+pwd});\n  msg.payload={\n    success:  true,\n    password: pwd,\n    validFrom: frm,\n    validUntil: exp,\n    message: '\ud83d\udd11 Keypad Code: '+pwd+' | From: '+frm+' | Until: '+exp\n  };\n}else{\n  node.status({fill:'red',shape:'dot',text:'Failed: '+JSON.stringify(msg.payload)});\n}\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 840,
+    "y": 360,
+    "wires": [
+      [
+        "557970c214ef6a51"
+      ]
+    ]
+  },
+  {
+    "id": "557970c214ef6a51",
+    "type": "debug",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udd11 Offline Password",
+    "active": true,
+    "tosidebar": true,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1060,
+    "y": 360,
+    "wires": []
+  },
+  {
+    "id": "10edcc694b2bf43b",
+    "type": "comment",
+    "z": "b73d270e92cfddf8",
+    "name": "\u2500\u2500 5. ACTIVITY LOGS (who unlocked, when) \u2500\u2500",
+    "x": 240,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "83985a0296fb12dc",
+    "type": "inject",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udccb Get Unlock Logs",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "once": false,
+    "onceDelay": 1,
+    "payload": "",
+    "payloadType": "date",
+    "x": 130,
+    "y": 600,
+    "wires": [
+      [
+        "b4a7cfb6a8501b20"
+      ]
+    ]
+  },
+  {
+    "id": "b4a7cfb6a8501b20",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Sign Logs Req",
+    "func": "var C='YOUR_CLIENT_ID',S='YOUR_CLIENT_SECRET',D='YOUR_DEVICE_ID',B='https://openapi.tuyaeu.com';\nvar T=flow.get('TOKEN')||'';\nif(!T){node.status({fill:'red',shape:'dot',text:'No token'});return null;}\nvar now   = String(Math.floor(Date.now()/1000));\nvar since = String(Math.floor(Date.now()/1000) - 86400);\nvar qsObj = {end_time:now, page_no:'1', page_size:'20', start_time:since};\nvar qs = Object.keys(qsObj).sort().map(function(k){return k+'='+qsObj[k];}).join('&');\nvar path = '/v1.0/devices/YOUR_DEVICE_ID/door-lock/open-logs' + '?' + qs;\nvar t   = String(Date.now());\nvar bh  = crypto.createHash('sha256').update('').digest('hex');\nvar sts = 'GET\\n'+bh+'\\n\\n'+path;\nvar sig = crypto.createHmac('sha256',S).update(C+T+t+sts).digest('hex').toUpperCase();\nmsg.method='GET'; msg.url=B+path; msg.payload='';\nmsg.headers={'client_id':C,'access_token':T,'sign_method':'HMAC-SHA256','t':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nnode.status({fill:'yellow',shape:'ring',text:'Fetching logs...'});\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 360,
+    "y": 600,
+    "wires": [
+      [
+        "f17d99e46ef240cd"
+      ]
+    ]
+  },
+  {
+    "id": "f17d99e46ef240cd",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "GET Open Logs",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 600,
+    "y": 600,
+    "wires": [
+      [
+        "797b87999827f1f4"
+      ]
+    ]
+  },
+  {
+    "id": "797b87999827f1f4",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Parse Unlock Logs",
+    "func": "if(!msg.payload||!msg.payload.success){\n  node.status({fill:'red',shape:'dot',text:'Error: '+JSON.stringify(msg.payload)});\n  return null;\n}\nvar logs=(msg.payload.result&&msg.payload.result.logs)||[];\nif(!logs.length){\n  node.status({fill:'grey',shape:'ring',text:'No logs found'});\n  msg.payload={message:'No unlock activity found'};\n  return msg;\n}\nvar METHODS={\n  'unlock_fingerprint':'\ud83d\udc46 Fingerprint',\n  'unlock_password':   '\ud83d\udd22 Password',\n  'unlock_temporary':  '\ud83d\udd11 Temp Code',\n  'unlock_card':       '\ud83d\udcb3 Card',\n  'unlock_app':        '\ud83d\udcf1 App',\n  'unlock_face':       '\ud83d\ude0a Face',\n  'unlock_key':        '\ud83d\udddd Key',\n  'unlock_hand':       '\u270b Hand'\n};\nvar entries=logs.map(function(e){\n  var t=new Date(e.update_time).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\n  // status is an OBJECT {code, value} \u2014 NOT an array\n  var s      = e.status || {};\n  var code   = s.code || '';\n  var value  = s.value || '';\n  var method = METHODS[code] || code || 'Unknown';\n  var name   = e.nick_name || e.unlock_name || ('User #'+value);\n  return {\n    time:     t,\n    method:   method,\n    userName: name,\n    userId:   value,\n    raw:      e\n  };\n});\nvar last=entries[0];\nnode.status({fill:'blue',shape:'dot',\n  text:last.time+' | '+last.method+' | '+last.userName});\nmsg.payload={total:msg.payload.result.total||entries.length,\n  latest:last, all:entries};\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 820,
+    "y": 600,
+    "wires": [
+      [
+        "fb0bd0b09e52105a"
+      ]
+    ]
+  },
+  {
+    "id": "fb0bd0b09e52105a",
+    "type": "debug",
+    "z": "b73d270e92cfddf8",
+    "name": "Unlock Activity",
+    "active": true,
+    "tosidebar": true,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1040,
+    "y": 600,
+    "wires": []
+  },
+  {
+    "id": "ceb8f73f4c151e11",
+    "type": "inject",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udcca 7-Day Activity Summary",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "once": false,
+    "onceDelay": 1,
+    "payload": "",
+    "payloadType": "date",
+    "x": 130,
+    "y": 660,
+    "wires": [
+      [
+        "91d4a4866c539256"
+      ]
+    ]
+  },
+  {
+    "id": "91d4a4866c539256",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Sign 7-Day History",
+    "func": "var C='YOUR_CLIENT_ID',S='YOUR_CLIENT_SECRET',D='YOUR_DEVICE_ID',B='https://openapi.tuyaeu.com';\nvar T=flow.get('TOKEN')||'';\nif(!T){node.status({fill:'red',shape:'dot',text:'No token'});return null;}\n// alarm-logs API not supported \u2014 show recent unlock history instead\nvar now   = String(Math.floor(Date.now()/1000));\nvar since = String(Math.floor(Date.now()/1000) - 7*86400);\nvar qsObj = {end_time:now, page_no:'1', page_size:'50', start_time:since};\nvar qs = Object.keys(qsObj).sort().map(function(k){return k+'='+qsObj[k];}).join('&');\nvar path = '/v1.0/devices/'+D+'/door-lock/open-logs?'+qs;\nvar t   = String(Date.now());\nvar bh  = crypto.createHash('sha256').update('').digest('hex');\nvar sts = 'GET\\n'+bh+'\\n\\n'+path;\nvar sig = crypto.createHmac('sha256',S).update(C+T+t+sts).digest('hex').toUpperCase();\nmsg.method='GET'; msg.url=B+path; msg.payload='';\nmsg.headers={'client_id':C,'access_token':T,'sign_method':'HMAC-SHA256','t':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nnode.status({fill:'yellow',shape:'ring',text:'Fetching 7-day history...'});\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 360,
+    "y": 660,
+    "wires": [
+      [
+        "04ad9666df88b942"
+      ]
+    ]
+  },
+  {
+    "id": "04ad9666df88b942",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "GET Alarm Logs",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 600,
+    "y": 660,
+    "wires": [
+      [
+        "c67f48fef2505550"
+      ]
+    ]
+  },
+  {
+    "id": "c67f48fef2505550",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Parse Activity Summary",
+    "func": "if(!msg.payload||!msg.payload.success){\n  node.status({fill:'red',shape:'dot',text:'Error: '+JSON.stringify(msg.payload)});\n  return null;\n}\nvar logs=(msg.payload.result&&msg.payload.result.logs)||[];\nvar total=msg.payload.result&&msg.payload.result.total||0;\n\n// Count unlock methods\nvar counts={};\nvar lastByUser={};\nlogs.forEach(function(e){\n  var s    = e.status||{};\n  var code = s.code||'unknown';\n  var name = e.nick_name||e.unlock_name||('User #'+s.value);\n  counts[code] = (counts[code]||0)+1;\n  var t = new Date(e.update_time).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\n  if(!lastByUser[name]||e.update_time>lastByUser[name].ts){\n    lastByUser[name]={ts:e.update_time,time:t,method:code};\n  }\n});\n\nvar METHODS={\n  'unlock_fingerprint':'\ud83d\udc46 Fingerprint',\n  'unlock_password':   '\ud83d\udd22 Password',\n  'unlock_temporary':  '\ud83d\udd11 Temp Code',\n  'unlock_card':       '\ud83d\udcb3 Card',\n  'unlock_app':        '\ud83d\udcf1 App',\n  'unlock_face':       '\ud83d\ude0a Face',\n  'unlock_key':        '\ud83d\udddd Key'\n};\n\nvar summary=Object.keys(counts).map(function(k){\n  return {method:METHODS[k]||k, count:counts[k]};\n});\n\nvar userSummary=Object.keys(lastByUser).map(function(name){\n  var u=lastByUser[name];\n  return {user:name, lastSeen:u.time, method:METHODS[u.method]||u.method};\n});\n\nnode.status({fill:'blue',shape:'dot',\n  text:'7-day total: '+total+' unlocks'});\nmsg.payload={\n  totalUnlocks: total,\n  methodBreakdown: summary,\n  userActivity: userSummary,\n  note:'Real-time alarms shown in Lock Events debug node (local device)'\n};\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 820,
+    "y": 660,
+    "wires": [
+      [
+        "e58f26d3ef23ae10"
+      ]
+    ]
+  },
+  {
+    "id": "e58f26d3ef23ae10",
+    "type": "debug",
+    "z": "b73d270e92cfddf8",
+    "name": "\ud83d\udcca Activity Summary",
+    "active": true,
+    "tosidebar": true,
+    "tostatus": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1040,
+    "y": 660,
+    "wires": []
+  },
+  {
+    "id": "bb6875570687369f",
+    "type": "comment",
+    "z": "b73d270e92cfddf8",
+    "name": "\u2500\u2500 6. HTTP API (from phone/browser) \u2500\u2500",
+    "x": 220,
+    "y": 720,
+    "wires": []
+  },
+  {
+    "id": "7ba91854a0b7d397",
+    "type": "http in",
+    "z": "b73d270e92cfddf8",
+    "name": "POST /api/password",
+    "url": "/api/password",
+    "method": "post",
+    "x": 120,
+    "y": 780,
+    "wires": [
+      [
+        "c1797699787f815b"
+      ]
+    ]
+  },
+  {
+    "id": "c1797699787f815b",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "API Password Handler",
+    "func": "var C='YOUR_CLIENT_ID',S='YOUR_CLIENT_SECRET',D='YOUR_DEVICE_ID',B='https://openapi.tuyaeu.com';\nvar T=flow.get('TOKEN')||'';\nif(!T){\n  msg.payload=JSON.stringify({success:false,error:'No token \u2014 wait and retry'});\n  msg.statusCode=503;\n  msg.headers={'content-type':'application/json'};\n  return msg;\n}\n// Parse body \u2014 could be string or object\nvar body_obj = {};\ntry{\n  body_obj = typeof msg.payload==='string' ? JSON.parse(msg.payload) : (msg.payload||{});\n} catch(e){ body_obj={}; }\n\n// Save res to flow context \u2014 survives through http request node\nflow.set('pendingRes', msg.res);\n\nvar now    = Math.floor(Date.now()/1000);\nvar hours  = parseFloat(body_obj.hours) || 1;\nvar fromTs = now;\nvar toTs   = now + Math.round(hours * 3600);\n\nvar path = '/v1.1/devices/'+D+'/door-lock/offline-temp-password';\nvar body = JSON.stringify({type:'once',effective_time:fromTs,invalid_time:toTs});\nvar t    = String(Date.now());\nvar bh   = crypto.createHash('sha256').update(body).digest('hex');\nvar sts  = 'POST\\n'+bh+'\\n\\n'+path;\nvar sig  = crypto.createHmac('sha256',S).update(C+T+t+sts).digest('hex').toUpperCase();\nmsg.method  = 'POST';\nmsg.url     = B+path;\nmsg.payload = body;\nmsg.headers = {'client_id':C,'access_token':T,'sign_method':'HMAC-SHA256',\n  't':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nnode.status({fill:'blue',shape:'ring',text:'Generating code for '+hours+'h...'});\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 340,
+    "y": 780,
+    "wires": [
+      [
+        "13d425a5de5eaec1"
+      ]
+    ]
+  },
+  {
+    "id": "13d425a5de5eaec1",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "POST Offline Password",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 580,
+    "y": 780,
+    "wires": [
+      [
+        "decb3011c905e274"
+      ]
+    ]
+  },
+  {
+    "id": "decb3011c905e274",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Format Password Response",
+    "func": "var r   = msg.payload && msg.payload.success ? msg.payload.result : null;\nvar pwd = r ? r.offline_temp_password : null;\nvar fromMs = r ? r.effective_time * 1000 : null;\nvar toMs   = r ? r.invalid_time   * 1000 : null;\nvar out = pwd\n  ? {success:true, password:pwd, fromMs:fromMs, toMs:toMs}\n  : {success:false, error:'Tuya error: '+JSON.stringify(msg.payload)};\nmsg.payload    = JSON.stringify(out);\nmsg.statusCode = 200;\nmsg.headers    = {'content-type':'application/json'};\nmsg.res        = flow.get('pendingRes');\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 800,
+    "y": 780,
+    "wires": [
+      [
+        "f29e0ef39e216e06"
+      ]
+    ]
+  },
+  {
+    "id": "f29e0ef39e216e06",
+    "type": "http response",
+    "z": "b73d270e92cfddf8",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 1010,
+    "y": 780,
+    "wires": []
+  },
+  {
+    "id": "c0b27db073eedb61",
+    "type": "http in",
+    "z": "b73d270e92cfddf8",
+    "name": "GET /api/logs",
+    "url": "/api/logs",
+    "method": "get",
+    "x": 120,
+    "y": 840,
+    "wires": [
+      [
+        "c93e2d8ade8d3a59"
+      ]
+    ]
+  },
+  {
+    "id": "c93e2d8ade8d3a59",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "API Logs",
+    "func": "var C='YOUR_CLIENT_ID', S='YOUR_CLIENT_SECRET', D='YOUR_DEVICE_ID', B='https://openapi.tuyaeu.com';\nvar T = flow.get('TOKEN') || '';\nif(!T){ node.status({fill:'red',shape:'dot',text:'No token \u2014 wait'}); return null; }\nmsg._res  = msg.res;\nvar now   = Math.floor(Date.now()/1000);\nvar since = now - (24*3600);\nvar path  = '/v1.0/devices/'+D+'/door-lock/open-logs?page_no=1&page_size=20&start_time='+since+'&end_time='+now;\nvar t   = String(Date.now());\nvar bh  = crypto.createHash('sha256').update('').digest('hex');\nvar sts = 'GET\\n' + bh + '\\n\\n' + path;\nvar sig = crypto.createHmac('sha256',S).update(C+T+t+sts).digest('hex').toUpperCase();\nmsg.method  = 'GET';\nmsg.url     = B + path;\nmsg.payload = '';\nmsg.headers = {'client_id':C,'access_token':T,'sign_method':'HMAC-SHA256','t':t,'nonce':'','sign':sig,'Content-Type':'application/json'};\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [
+      {
+        "var": "crypto",
+        "module": "crypto"
+      }
+    ],
+    "x": 340,
+    "y": 840,
+    "wires": [
+      [
+        "b8944c454a7fa2c3"
+      ]
+    ]
+  },
+  {
+    "id": "b8944c454a7fa2c3",
+    "type": "http request",
+    "z": "b73d270e92cfddf8",
+    "name": "GET Logs",
+    "method": "use",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "x": 580,
+    "y": 840,
+    "wires": [
+      [
+        "943a9149376d4cbd"
+      ]
+    ]
+  },
+  {
+    "id": "943a9149376d4cbd",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Format Logs",
+    "func": "var logs = (msg.payload&&msg.payload.success&&msg.payload.result&&msg.payload.result.logs)||[];\nvar entries = logs.map(function(e){\n  var t = new Date((e.update_time||e.event_time||0)*1000).toLocaleString('en-GB',{timeZone:'Asia/Riyadh'});\n  var status = e.status||[];\n  var uid='?', meth='?';\n  status.forEach(function(s){\n    if(s.code==='user_id') uid=s.value;\n    if(s.code&&s.code.indexOf('unlock')>-1) meth=s.code;\n  });\n  return {time:t, userId:uid, method:meth};\n});\nmsg.payload    = JSON.stringify({success:true, totalLogs:entries.length, logs:entries});\nmsg.statusCode = 200;\nmsg.headers    = {'content-type':'application/json'};\nmsg.res        = msg._res;\nreturn msg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 800,
+    "y": 840,
+    "wires": [
+      [
+        "1bbc780666a34243"
+      ]
+    ]
+  },
+  {
+    "id": "1bbc780666a34243",
+    "type": "http response",
+    "z": "b73d270e92cfddf8",
+    "name": "Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 1010,
+    "y": 840,
+    "wires": []
+  },
+  {
+    "id": "08030dda7703efd8",
+    "type": "http in",
+    "z": "b73d270e92cfddf8",
+    "name": "GET /lock",
+    "url": "/lock",
+    "method": "get",
+    "x": 130,
+    "y": 1000,
+    "wires": [
+      [
+        "2c8a88096ad993ee"
+      ]
+    ]
+  },
+  {
+    "id": "2c8a88096ad993ee",
+    "type": "function",
+    "z": "b73d270e92cfddf8",
+    "name": "Serve PALM UI",
+    "func": "msg.payload=`<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>PALM \u2014 Smart Lock</title>\n<style>\n  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');\n  :root{\n    --bg:#0a0a0f;--surface:#13131a;--card:#1a1a24;--border:#2a2a38;\n    --accent:#6c63ff;--accent2:#ff6584;--green:#00e5a0;\n    --text:#e8e8f0;--muted:#6b6b80;--radius:16px;\n  }\n  *{box-sizing:border-box;margin:0;padding:0;}\n  body{\n    font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);\n    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;\n    background-image:\n      radial-gradient(ellipse 80% 50% at 50% -20%,rgba(108,99,255,.15),transparent),\n      radial-gradient(ellipse 60% 40% at 80% 80%,rgba(255,101,132,.08),transparent);\n  }\n  .wrap{width:100%;max-width:440px;}\n\n  /* Header \u2014 PALM branding */\n  .hdr{text-align:center;margin-bottom:36px;}\n  .brand{font-size:42px;font-weight:800;letter-spacing:6px;\n    background:linear-gradient(135deg,var(--accent),var(--accent2));\n    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;\n    margin-bottom:6px;}\n  .brand-sub{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;\n    color:var(--muted);text-transform:uppercase;}\n\n  .card{background:var(--card);border:1px solid var(--border);\n    border-radius:var(--radius);padding:28px;margin-bottom:12px;}\n  .lbl{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;\n    color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px;}\n  .lbl em{color:var(--accent);font-style:normal;}\n\n  /* Duration grid */\n  .dur-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;}\n  .dur-btn{\n    background:var(--surface);border:1px solid var(--border);border-radius:10px;\n    color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;\n    padding:14px 8px;cursor:pointer;transition:all .2s;text-align:center;\n  }\n  .dur-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.08);}\n  .dur-btn.active{border-color:var(--accent);color:var(--accent);\n    background:rgba(108,99,255,.12);box-shadow:0 0 0 1px var(--accent);}\n  .dur-btn .num{font-size:20px;font-weight:500;display:block;color:var(--text);line-height:1.2;}\n  .dur-btn.active .num{color:var(--accent);}\n\n  /* Custom input */\n  .custom-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;}\n  .custom-input{\n    flex:1;background:var(--surface);border:1px solid var(--border);\n    border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;\n    font-size:16px;padding:12px 16px;outline:none;transition:border-color .2s;\n  }\n  .custom-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,99,255,.15);}\n  .custom-unit{color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;}\n\n  /* Preview */\n  .preview{background:rgba(108,99,255,.06);border:1px solid rgba(108,99,255,.2);\n    border-radius:10px;padding:10px 14px;font-family:'DM Mono',monospace;\n    font-size:12px;color:var(--accent);margin-bottom:20px;}\n\n  /* Generate button */\n  .gen-btn{\n    width:100%;background:linear-gradient(135deg,var(--accent),#8b5cf6);\n    border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;\n    font-size:16px;font-weight:700;padding:16px;cursor:pointer;transition:all .2s;\n  }\n  .gen-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(108,99,255,.4);}\n  .gen-btn:active{transform:translateY(0);}\n  .gen-btn.loading{opacity:.7;cursor:wait;}\n\n  /* Result */\n  .result{\n    background:var(--surface);border:1px solid var(--green);\n    border-radius:var(--radius);padding:28px;text-align:center;\n    display:none;animation:up .3s ease;\n  }\n  .result.show{display:block;}\n  @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}\n\n  .rlbl{font-size:11px;letter-spacing:2px;text-transform:uppercase;\n    color:var(--green);margin-bottom:14px;font-family:'DM Mono',monospace;}\n  .code{\n    font-family:'DM Mono',monospace;font-size:38px;font-weight:500;\n    letter-spacing:6px;margin-bottom:8px;cursor:pointer;\n    transition:color .2s;word-break:break-all;\n  }\n  .code:hover{color:var(--green);}\n  .copy-tip{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:18px;}\n  .validity{\n    background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);\n    border-radius:10px;padding:12px 16px;text-align:left;\n  }\n  .vrow{display:flex;justify-content:space-between;gap:8px;\n    font-family:'DM Mono',monospace;font-size:12px;color:var(--green);}\n  .vrow+.vrow{margin-top:6px;border-top:1px solid rgba(0,229,160,.1);padding-top:6px;}\n  .vk{color:var(--muted);}\n\n  /* Error */\n  .err{\n    background:rgba(255,101,132,.08);border:1px solid rgba(255,101,132,.3);\n    border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:12px;\n    color:var(--accent2);display:none;margin-top:12px;\n  }\n  .err.show{display:block;}\n</style>\n</head>\n<body>\n<div class=\"wrap\">\n  <div class=\"hdr\">\n    <div class=\"brand\">PALM</div>\n    <div class=\"brand-sub\">Smart Lock Access System</div>\n  </div>\n\n  <div class=\"card\">\n    <div class=\"lbl\"><em>&#x23F1;</em> Select Duration</div>\n    <div class=\"dur-grid\">\n      <button class=\"dur-btn active\" onclick=\"pick(1,this)\"><span class=\"num\">1</span>hour</button>\n      <button class=\"dur-btn\" onclick=\"pick(2,this)\"><span class=\"num\">2</span>hours</button>\n      <button class=\"dur-btn\" onclick=\"pick(4,this)\"><span class=\"num\">4</span>hours</button>\n      <button class=\"dur-btn\" onclick=\"pick(8,this)\"><span class=\"num\">8</span>hours</button>\n      <button class=\"dur-btn\" onclick=\"pick(24,this)\"><span class=\"num\">1</span>day</button>\n      <button class=\"dur-btn\" onclick=\"pick(72,this)\"><span class=\"num\">3</span>days</button>\n    </div>\n\n    <div class=\"lbl\" style=\"margin-bottom:10px;\"><em>&#x2699;</em> Custom Hours</div>\n    <div class=\"custom-row\">\n      <input class=\"custom-input\" type=\"number\" id=\"hrs\" min=\"0.25\" max=\"720\"\n             step=\"0.25\" placeholder=\"e.g. 12\" oninput=\"onCustom()\"/>\n      <span class=\"custom-unit\">hours</span>\n    </div>\n\n    <div class=\"preview\" id=\"preview\">&#x23F0; Valid immediately &mdash; expires in <strong id=\"durLbl\">1 hour</strong></div>\n\n    <button class=\"gen-btn\" id=\"genBtn\" onclick=\"generate()\">Generate Access Code</button>\n    <div class=\"err\" id=\"errBox\"></div>\n  </div>\n\n  <div class=\"result\" id=\"resultBox\">\n    <div class=\"rlbl\">&#x2726; Access Code Ready</div>\n    <div class=\"code\" id=\"codeEl\" onclick=\"copyCode()\">&#x2014;</div>\n    <div class=\"copy-tip\">tap to copy</div>\n    <div class=\"validity\">\n      <div class=\"vrow\"><span class=\"vk\">VALID FROM</span><span id=\"vFrom\"></span></div>\n      <div class=\"vrow\"><span class=\"vk\">VALID UNTIL</span><span id=\"vUntil\"></span></div>\n    </div>\n  </div>\n</div>\n\n<script>\nvar sel = 1;\n\nfunction pick(h, btn) {\n  sel = h;\n  document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('active');});\n  btn.classList.add('active');\n  document.getElementById('hrs').value = '';\n  updatePreview();\n}\n\nfunction onCustom() {\n  var v = parseFloat(document.getElementById('hrs').value);\n  if(v > 0) {\n    sel = v;\n    document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('active');});\n    updatePreview();\n  }\n}\n\nfunction updatePreview() {\n  var lbl = sel < 1  ? Math.round(sel*60)+' min'\n          : sel === 1 ? '1 hour'\n          : sel < 24  ? sel+' hours'\n          : sel === 24 ? '1 day'\n          : Math.round(sel/24)+' days';\n  document.getElementById('durLbl').textContent = lbl;\n}\n\nfunction generate() {\n  var btn = document.getElementById('genBtn');\n  btn.textContent = 'Generating...'; btn.classList.add('loading');\n  document.getElementById('errBox').classList.remove('show');\n  document.getElementById('resultBox').classList.remove('show');\n\n  fetch('/api/password', {\n    method: 'POST',\n    headers: {'Content-Type':'application/json'},\n    body: JSON.stringify({hours: sel})\n  })\n  .then(function(r){ return r.json(); })\n  .then(function(d) {\n    btn.textContent = 'Generate Access Code'; btn.classList.remove('loading');\n    if(d.success) {\n      document.getElementById('codeEl').textContent = d.password;\n      var opts = {hour:'2-digit',minute:'2-digit',second:'2-digit',\n                  day:'2-digit',month:'2-digit',year:'numeric'};\n      document.getElementById('vFrom').textContent  =\n        d.fromMs ? new Date(d.fromMs).toLocaleString(undefined,opts) : 'Now';\n      document.getElementById('vUntil').textContent =\n        d.toMs   ? new Date(d.toMs).toLocaleString(undefined,opts)   : '\u2014';\n      document.getElementById('resultBox').classList.add('show');\n    } else {\n      showErr(d.error || d.message || JSON.stringify(d));\n    }\n  })\n  .catch(function(e){\n    btn.textContent='Generate Access Code'; btn.classList.remove('loading');\n    showErr('Network error: '+e.message);\n  });\n}\n\nfunction copyCode(){\n  var c = document.getElementById('codeEl').textContent;\n  navigator.clipboard.writeText(c).then(function(){\n    document.getElementById('codeEl').style.color='var(--green)';\n    setTimeout(function(){document.getElementById('codeEl').style.color='';},1200);\n  });\n}\n\nfunction showErr(m){\n  var el=document.getElementById('errBox'); el.textContent='\u26a0 '+m; el.classList.add('show');\n}\n\nupdatePreview();\n</script>\n</body>\n</html>`;\nmsg.headers={'content-type':'text/html'};\nmsg.statusCode=200;\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 1000,
+    "wires": [
+      [
+        "c870b8b04eedb87a"
+      ]
+    ]
+  },
+  {
+    "id": "c870b8b04eedb87a",
+    "type": "http response",
+    "z": "b73d270e92cfddf8",
+    "name": "Serve HTML",
+    "statusCode": "",
+    "headers": {},
+    "x": 570,
+    "y": 1000,
+    "wires": []
+  },
+  {
+    "id": "a02b03ba85973066",
+    "type": "comment",
+    "z": "b73d270e92cfddf8",
+    "name": "\u2500\u2500 7. CALENDAR UI  \u2192  open http://YOUR-IP:1880/lock \u2500\u2500",
+    "x": 380,
+    "y": 940,
+    "wires": []
+  },
+  {
+    "id": "6a813e70ef9da04a",
+    "type": "tuya-local-device",
+    "name": "smart lock ",
+    "project": "567b34e6eb6c295b",
+    "deviceId": "YOUR_DEVICE_ID",
+    "localKey": "YOUR_LOCAL_KEY",
+    "gateway": "",
+    "cid": "",
+    "autoStart": true,
+    "cacheAnnouncement": true,
+    "deviceMac": "YOUR_DEVICE_MAC",
+    "staticIp": true,
+    "ip": "192.168.1.102",
+    "port": 6668,
+    "home": "",
+    "room": "",
+    "deviceCategory": "jtmspro",
+    "tuyaVersion": "3.3",
+    "retryTimeout": "3000",
+    "findTimeout": "30000",
+    "reinitOnLost": true,
+    "watchdogTimeout": "",
+    "eventMode": "event-dp-refresh",
+    "dbgDevice": true,
+    "dbgDeviceExtension": true,
+    "dbgTuyaDevice": true
+  },
+  {
+    "id": "567b34e6eb6c295b",
+    "type": "tuya-project",
+    "name": "",
+    "dbUri": "",
+    "translate": true,
+    "language": "en",
+    "translator": "",
+    "cloud": "7398a6a89c594faa",
+    "home": "",
+    "room": "",
+    "version": 1,
+    "broker": "",
+    "fullTopic": "tuya/%topic%/%prefix%",
+    "disableArp": false,
+    "dbgProject": false,
+    "dbgCache": false,
+    "dbgCloud": false,
+    "dbgMqtt": false,
+    "dbgScanner": false
+  },
+  {
+    "id": "7398a6a89c594faa",
+    "type": "tuya-cloud",
+    "name": "tuya",
+    "userId": "",
+    "deviceId": "YOUR_DEVICE_ID_2",
+    "appType": null
+  },
+  {
+    "id": "d51ce99e47da2d9c",
+    "type": "global-config",
+    "env": [],
+    "modules": {
+      "node-red-contrib-tuya-devices": "1.5.5"
+    }
+  }
+]
